@@ -22,8 +22,7 @@ pkgver() {
 build() {
   cd "${_pkgname}"
   ruby compile-scheme.rb -s schemes/ml/ml.scheme -o schemes/ml/ml.vst
-
-
+  ruby compile-scheme.rb -s schemes/ml-inscript/ml-inscript.scheme -o schemes/ml-inscript/ml-inscript.vst
 }
 
 package() {
