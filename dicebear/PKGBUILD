@@ -1,0 +1,21 @@
+pkgname=dicebear
+pkgver=9.2.2
+pkgrel=1
+pkgdesc="Avatar library for designers and developers"
+arch=('any')
+url="https://github.com/dicebear/dicebear"
+license=('MIT')
+depends=('nodejs')
+makedepends=('npm')
+source=("https://registry.npmjs.org/$pkgname/-/$pkgname-$pkgver.tgz")
+noextract=("$pkgname-$pkgver.tgz")
+sha256sums=('SKIP')
+
+package() {
+    npm install -g --prefix "$pkgdir/usr" "$srcdir/$pkgname-$pkgver.tgz"
+    
+    find "$pkgdir/usr" -type d -name .cache -exec rm -rf {} +
+    rm -rf "$pkgdir/usr/etc"
+    
+    find "$pkgdir/usr" -type d -exec chmod 755 {} +
+}
