@@ -13,7 +13,6 @@ sha256sums=('SKIP')
 makedepends=('ruby' 'ruby-ffi' 'govarnam')
 provides=('govarnam-schemes')
 install=${pkgname}.install
-options=('!splitdebug')
 
 pkgver() {
   cd "${_pkgname}"

@@ -7,7 +7,6 @@ url="https://didierstevens.com"
 license=('custom')
 depends=('python')
 makedepends=('unzip')
-options=('!splitdebug')
 
 source=(
   "https://didierstevens.com/files/software/pdf-parser_V0_6_7.zip"
