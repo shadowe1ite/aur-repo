@@ -1,4 +1,4 @@
-Name: Test AUR Builds
+name: Test AUR Builds
 
 on:
   push:
@@ -82,3 +82,4 @@ jobs:
           name: aur-packages
           path: |
             **/*.pkg.tar*
+            
