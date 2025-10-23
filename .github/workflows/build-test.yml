@@ -1,4 +1,4 @@
-name: Test AUR Builds
+Name: Test AUR Builds
 
 on:
   push:
@@ -28,21 +28,35 @@ jobs:
           mkdir -p /home/builder/.cache/makepkg
           chown -R builder:builder /home/builder
 
+      - name: Install paru as builder
+        run: |
+          cd /home/builder
+          # Clone paru-bin for a faster build (pre-compiled)
+          sudo -u builder git clone https://aur.archlinux.org/paru-bin.git
+          cd paru-bin
+          # Build and install paru
+          sudo -u builder makepkg -si --noconfirm
+          cd /
+          # Clean up
+          rm -rf /home/builder/paru-bin
+
       - name: Set proper permissions
         run: |
           echo "Workspace path: $GITHUB_WORKSPACE"
           chmod -R 755 "$GITHUB_WORKSPACE"
           chown -R builder:builder "$GITHUB_WORKSPACE"
 
-      - name: Build all AUR packages
+      - name: Build all AUR packages with paru
         run: |
           for dir in */; do
             if [ -f "${dir}PKGBUILD" ]; then
               echo "========================================"
-              echo "Building: ${dir}"
+              echo "Building: ${dir} with paru"
               echo "========================================"
               cd "${dir}"
-              sudo -u builder makepkg -s --noconfirm
+              # Use paru -U to build from local PKGBUILD
+              # This will also resolve and install dependencies from repos and AUR
+              sudo -u builder paru -U --noconfirm
               BUILD_STATUS=$?
               if [ $BUILD_STATUS -eq 0 ]; then
                 echo "✓ ${dir} BUILD SUCCESSFUL"
@@ -58,6 +72,7 @@ jobs:
         if: always()
         run: |
           echo "Build artifacts:"
+          # Find packages in the current directory (where they were built)
           find "$GITHUB_WORKSPACE" -name "*.pkg.tar*" -type f -exec ls -lh {} \;
 
       - name: Upload artifacts
