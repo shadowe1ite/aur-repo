@@ -1,0 +1,30 @@
+pkgname=pdf-parser
+pkgver=0.6.7
+pkgrel=1
+pkgdesc="PDF parser by Didier Stevens"
+arch=('any')
+url="https://didierstevens.com"
+license=('custom')
+depends=('python')
+makedepends=('unzip')
+source=(
+  "https://didierstevens.com/files/software/pdf-parser_V0_6_7.zip"
+)
+sha256sums=(
+  'ed863de952a5096ff4be0825110d2726ba1be75a7a6717af0e6a153b843e3b78'
+)
+
+prepare() {
+  cd "$srcdir"
+  unzip -q "pdf-parser_V0_6_7.zip" -d "${pkgname}-${pkgver}"
+  cd "${pkgname}-${pkgver}"
+  
+  # Fix raw strings in regular expressions
+  sed -i "s/re\\.sub('\\([^']*\\\\[sd][^']*\\)'/re.sub(r'\\1'/g" pdf-parser.py
+  sed -i "s/re\\.match('\\([^']*\\\\[sd][^']*\\)'/re.match(r'\\1'/g" pdf-parser.py
+}
+
+package() {
+  cd "${srcdir}/${pkgname}-${pkgver}"
+  install -Dm755 pdf-parser.py "$pkgdir/usr/bin/pdf-parser"
+}
