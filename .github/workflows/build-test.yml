@@ -1,0 +1,44 @@
+name: Test AUR Builds
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Manual trigger button in GitHub
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --needed base-devel git sudo --noconfirm
+
+      - name: Create build user
+        run: |
+          useradd -m builder || true
+          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/builder
+
+      - name: Build all packages
+        run: |
+          for dir in */; do
+            if [ -f "$dir/PKGBUILD" ]; then
+              echo "=== Building: $dir ==="
+              cd "$dir"
+              sudo -u builder makepkg -s --noconfirm
+              if [ $? -eq 0 ]; then
+                echo "✓ $dir SUCCESS"
+              else
+                echo "✗ $dir FAILED"
+                exit 1
+              fi
+              cd ..
+            fi
+          done
