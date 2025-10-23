@@ -16,31 +16,45 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install build tools
+      - name: Update system and install build tools
         run: |
           pacman -Syu --noconfirm
-          pacman -S --needed base-devel git --noconfirm
+          pacman -S --needed base-devel git sudo --noconfirm
 
-      - name: Create build user
+      - name: Create non-root build user
         run: |
-          useradd -m builder
+          useradd -m builder || true
           echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/builder
+          mkdir -p /home/builder/.cache/makepkg
+          chown -R builder:builder /home/builder
 
-      - name: Build all packages
+      - name: Set proper permissions
+        run: |
+          chmod -R 755 /github/workspace
+          chown -R builder:builder /github/workspace
+
+      - name: Build all AUR packages
         run: |
           for dir in */; do
-            if [ -f "$dir/PKGBUILD" ]; then
-              echo "=== Building: $dir ==="
-              mkdir -p /tmp/build-$dir
-              cp -r "$dir"/* /tmp/build-$dir/
-              cd /tmp/build-$dir
+            if [ -f "${dir}PKGBUILD" ]; then
+              echo "========================================"
+              echo "Building: ${dir}"
+              echo "========================================"
+              cd "${dir}"
               sudo -u builder makepkg -s --noconfirm
-              if [ $? -eq 0 ]; then
-                echo "✓ $dir SUCCESS"
+              BUILD_STATUS=$?
+              if [ $BUILD_STATUS -eq 0 ]; then
+                echo "✓ ${dir} BUILD SUCCESSFUL"
               else
-                echo "✗ $dir FAILED"
+                echo "✗ ${dir} BUILD FAILED"
                 exit 1
               fi
-              cd -
+              cd ..
             fi
           done
+
+      - name: List build artifacts
+        if: always()
+        run: |
+          echo "Build artifacts:"
+          find . -name "*.pkg.tar*" -type f -exec ls -lh {} \;
