@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '**/*.md'
   workflow_dispatch:
 
 jobs:
@@ -31,13 +33,10 @@ jobs:
       - name: Install paru as builder
         run: |
           cd /home/builder
-          # Clone paru-bin for a faster build (pre-compiled)
           sudo -u builder git clone https://aur.archlinux.org/paru-bin.git
           cd paru-bin
-          # Build and install paru
           sudo -u builder makepkg -si --noconfirm
           cd /
-          # Clean up
           rm -rf /home/builder/paru-bin
 
       - name: Set proper permissions
@@ -54,8 +53,6 @@ jobs:
               echo "Building: ${dir} with paru"
               echo "========================================"
               cd "${dir}"
-              # Use paru -U to build from local PKGBUILD
-              # This will also resolve and install dependencies from repos and AUR
               sudo -u builder paru -U --noconfirm
               BUILD_STATUS=$?
               if [ $BUILD_STATUS -eq 0 ]; then
@@ -72,7 +69,6 @@ jobs:
         if: always()
         run: |
           echo "Build artifacts:"
-          # Find packages in the current directory (where they were built)
           find "$GITHUB_WORKSPACE" -name "*.pkg.tar*" -type f -exec ls -lh {} \;
 
       - name: Upload artifacts
@@ -82,4 +78,3 @@ jobs:
           name: aur-packages
           path: |
             **/*.pkg.tar*
-            
