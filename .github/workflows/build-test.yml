@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Update system and install build tools
         run: |
@@ -41,11 +43,12 @@ jobs:
 
       - name: Set proper permissions
         run: |
-          echo "Workspace path: $GITHUB_WORKSPACE"
           chmod -R 755 "$GITHUB_WORKSPACE"
           chown -R builder:builder "$GITHUB_WORKSPACE"
 
-      - name: Build all AUR packages with paru
+      - name: Build all AUR packages with paru and push .SRCINFO
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           for dir in */; do
             if [ -f "${dir}PKGBUILD" ]; then
@@ -53,12 +56,26 @@ jobs:
               echo "Building: ${dir} with paru"
               echo "========================================"
               cd "${dir}"
+
               sudo -u builder paru -U --noconfirm
-              BUILD_STATUS=$?
-              if [ $BUILD_STATUS -eq 0 ]; then
+              if [ $? -eq 0 ]; then
                 echo "✓ ${dir} BUILD SUCCESSFUL"
+
                 # Generate .SRCINFO
                 sudo -u builder makepkg --printsrcinfo > .SRCINFO
+
+                # If this dir is a git repo, commit and push
+                if [ -d .git ]; then
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  git add .SRCINFO
+                  if ! git diff --cached --quiet; then
+                    git commit -m "Update .SRCINFO [CI skip]"
+                    git push origin HEAD
+                  else
+                    echo "No changes to .SRCINFO in ${dir}"
+                  fi
+                fi
               else
                 echo "✗ ${dir} BUILD FAILED"
                 exit 1
