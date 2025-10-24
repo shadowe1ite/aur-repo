@@ -50,6 +50,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
+
+          # Determine the branch name we should push back to:
+          BRANCH="${GITHUB_REF#refs/heads/}"
+
           for dir in */; do
             if [ -f "${dir}PKGBUILD" ]; then
               echo "========================================"
@@ -57,29 +62,29 @@ jobs:
               echo "========================================"
               cd "${dir}"
 
-              sudo -u builder paru -U --noconfirm
-              if [ $? -eq 0 ]; then
-                echo "✓ ${dir} BUILD SUCCESSFUL"
+              # Build/upgrade package as the non-root builder
+              sudo -u builder paru -U --noconfirm || { echo "✗ ${dir} BUILD FAILED"; exit 1; }
+              echo "✓ ${dir} BUILD SUCCESSFUL"
 
-                # Generate .SRCINFO
-                sudo -u builder makepkg --printsrcinfo > .SRCINFO
+              # Generate .SRCINFO as builder
+              sudo -u builder makepkg --printsrcinfo > .SRCINFO
 
-                # If this dir is a git repo, commit and push
-                if [ -d .git ]; then
-                  git config user.name "github-actions[bot]"
-                  git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git add .SRCINFO
-                  if ! git diff --cached --quiet; then
-                    git commit -m "Update .SRCINFO [CI skip]"
-                    git push origin HEAD
-                  else
-                    echo "No changes to .SRCINFO in ${dir}"
-                  fi
-                fi
+              # Add .SRCINFO to repo (operate on repo root so we don't assume a .git in subdir)
+              git -C "$GITHUB_WORKSPACE" config user.name "github-actions[bot]"
+              git -C "$GITHUB_WORKSPACE" config user.email "github-actions[bot]@users.noreply.github.com"
+
+              # Use the file path relative to repo root
+              SRCINFO_PATH="${dir%.}/.SRCINFO"
+              # Add the file and commit if changed
+              git -C "$GITHUB_WORKSPACE" add "${dir}.SRCINFO" || true
+              if ! git -C "$GITHUB_WORKSPACE" diff --cached --quiet; then
+                git -C "$GITHUB_WORKSPACE" commit -m "Update .SRCINFO for ${dir%/} [CI skip]"
+                # Push using the token to ensure auth works in the container
+                git -C "$GITHUB_WORKSPACE" push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${BRANCH}"
               else
-                echo "✗ ${dir} BUILD FAILED"
-                exit 1
+                echo "No changes to .SRCINFO in ${dir}"
               fi
+
               cd ..
             fi
           done
