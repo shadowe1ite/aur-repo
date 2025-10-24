@@ -57,6 +57,8 @@ jobs:
               BUILD_STATUS=$?
               if [ $BUILD_STATUS -eq 0 ]; then
                 echo "✓ ${dir} BUILD SUCCESSFUL"
+                # Generate .SRCINFO
+                sudo -u builder makepkg --printsrcinfo > .SRCINFO
               else
                 echo "✗ ${dir} BUILD FAILED"
                 exit 1
