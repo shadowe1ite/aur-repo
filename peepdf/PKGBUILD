@@ -10,7 +10,6 @@ makedepends=('python-pip' 'git' 'base-devel' 'cmake' 'autoconf' 'libtool' 'autom
 
 source=(
     "git+https://github.com/cert-ee/peepdf"
-    "PyV8-0.9.linux-x86_64.tar.gz::https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/pyv8/PyV8-0.9.linux-x86_64.tar.gz"
     "libemu::git+https://github.com/buffer/libemu"
 )
 sha256sums=('SKIP' 'SKIP' 'SKIP')
@@ -30,11 +29,6 @@ package() {
 
     # Install missing Python deps
     pip install --root="$pkgdir" --no-deps jsbeautifier future pythonaes
-
-    # Install PyV8 prebuilt
-    mkdir -p "$pkgdir/usr/lib/python3.13/site-packages/"
-    bsdtar -xf "$srcdir/PyV8-0.9.linux-x86_64.tar.gz" -C "$pkgdir/usr/lib/python3.13/site-packages/"
-    ln -s "PyV8" "$pkgdir/usr/lib/python3.13/site-packages/v8"
 
     # Build & install libemu
     cd "$srcdir/libemu"
